@@ -42,7 +42,7 @@ def get_prompt():
     instructions = """
     Dada uma lista de produtos e um produto alvo, encontre o produto mais similar.
     IMPORTANTE: considerando os aspectos mais relevantes para um cliente querendo achar o produto similar.
-    Se houver mais de um produto igualmente relevante e de alta qualidade, retorne todos eles.
+    Se houver mais de um produto igualmente relevante e de alta qualidade, retorne NO MÁXIMO OS 3 MELHORES.
     Se nenhum produto for suficientemente relevante, retorne None.
 
 
@@ -80,16 +80,25 @@ query = """
 </target-product>
 """
 
-target_product = "INS CANUDO 10MM 100 UN"
+
+
+
+
+
+target_product = "Detergente de roupa perfect white 7L"
+
+
+
+
+
+
+
+
 print("Initiating similar product search...")
 product_list = get_similar_products(target_product)
 print("Product list obtained.")
 
-
 query = query.format(product_list=product_list, target_product=target_product)
-
-
-
 result = chain.invoke({"query": query})
 print(result)
 

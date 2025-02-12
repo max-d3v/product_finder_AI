@@ -43,12 +43,30 @@ def get_similar_products(product_name: str):
         vectordb.persist()
 
     # Perform similarity search
-    retrieved_docs = vectordb.similarity_search(product_name, k=300)
-    page_contents = [doc.page_content for doc in retrieved_docs]
+    retrieved_docs = vectordb.similarity_search_with_score(product_name, k=300)
 
-    print("Found products: ")
-    print(page_contents)
+    # Filter out documents with score above 0.9
+    filtered_docs = [(doc, score) for doc, score in retrieved_docs if score <= 0.91]
 
-    return page_contents
+    # Remove duplicate documents based on page content
+    seen_contents = set()
+    unique_filtered_docs = []
+    for doc, score in filtered_docs:
+        if doc.page_content not in seen_contents:
+            unique_filtered_docs.append((doc, score))
+            seen_contents.add(doc.page_content)
 
-#products = get_similar_products("PAPEL TOALHA VIP 6X200 MTR - PROPAPER")
+
+
+    # Extract and print page contents and scores
+    for doc, score in unique_filtered_docs:
+        print(f"Page Content: {doc.page_content}, Score: {score}")
+
+
+    # Print the total number of filtered documents
+    print(f"Total number of filtered documents: {len(unique_filtered_docs)}")
+
+    unique_filtered_docs_without_score = [doc for doc, score in unique_filtered_docs]
+    return unique_filtered_docs_without_score
+
+#products = get_similar_products("INS CANUDO 10MM 100 UN")
