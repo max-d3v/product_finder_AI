@@ -1,0 +1,5 @@
+.env
+__pycache__/
+finder/
+vector_db_products/
+products.json
