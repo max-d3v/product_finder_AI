@@ -1,8 +1,4 @@
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
@@ -82,16 +78,7 @@ query = """
 
 
 
-
-
-
 target_product = "Detergente de roupa perfect white 7L"
-
-
-
-
-
-
 
 
 print("Initiating similar product search...")
