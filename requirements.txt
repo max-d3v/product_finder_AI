@@ -1,0 +1,7 @@
+langchain
+python-dotenv
+langchain-openai
+langchain_google_genai
+langchain_community
+jq
+langchain-chroma
