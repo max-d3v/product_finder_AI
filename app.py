@@ -1,12 +1,15 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
+from fastapi import FastAPI
 
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import os
 
 from product_rag import get_similar_products
+
+app = FastAPI()
 
 class FoundObject(BaseModel):
     ItemName: str = Field(description="Name of the item found")
@@ -65,27 +68,34 @@ prompt = get_prompt()
 chain = prompt | llm | pydantic_parser
 
 
-query = """
-<product-list>
-{product_list}
-</product-list>
+query_template = """
+    <product-list>
+    {product_list}
+    </product-list>
 
 
-<target-product>
-{target_product}
-</target-product>
-"""
+    <target-product>
+    {target_product}
+    </target-product>
+    """
+
+def get_products(target_product: str):
+    print("Initiating similar product search...")
+    product_list = get_similar_products(target_product)
+    print("Product list obtained.")
+
+    query = query_template.format(product_list=product_list, target_product=target_product)
+    result = chain.invoke({"query": query})
+    return result
 
 
+@app.get("/product/{target_product}")
+def get_product(target_product: str):
+    if (target_product is None or target_product == ""):
+        return {"error": "No target product provided."}
+    result = get_products(target_product)
+    return result
 
-target_product = "Detergente de roupa perfect white 7L"
-
-
-print("Initiating similar product search...")
-product_list = get_similar_products(target_product)
-print("Product list obtained.")
-
-query = query.format(product_list=product_list, target_product=target_product)
-result = chain.invoke({"query": query})
-print(result)
-
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=1313)

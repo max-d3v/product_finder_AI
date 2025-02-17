@@ -5,3 +5,5 @@ langchain_google_genai
 langchain_community
 jq
 langchain-chroma
+fastapi
+uvicorn
