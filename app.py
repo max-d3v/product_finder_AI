@@ -24,7 +24,11 @@ pydantic_parser = PydanticOutputParser(pydantic_object=FoundObjects)
 def load_env():
     load_dotenv()
     googleKey=os.getenv("GOOGLE_API_KEY")
+    key = os.getenv("OPENAI_API_KEY_NEW")
+    
     os.environ["GOOGLE_API_KEY"] = googleKey
+    os.environ["OPENAI_API_KEY"] = key
+
 
 
 def get_model():

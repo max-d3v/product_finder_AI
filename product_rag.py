@@ -5,13 +5,8 @@ from langchain_chroma import Chroma
 from dotenv import load_dotenv
 import os
 
-def load_env():
-    load_dotenv()
-    key = os.getenv("OPENAI_API_KEY_NEW")
-    os.environ["OPENAI_API_KEY"] = key
 
 def get_similar_products(product_name: str):
-    load_env()
     persist_directory = "vector_db_products"
     embedding_function = OpenAIEmbeddings(model="text-embedding-3-large")
 
