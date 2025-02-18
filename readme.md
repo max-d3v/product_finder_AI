@@ -11,12 +11,14 @@
     }
     ```
 
-2. Execute o `app.py` pela primeira vez para criar o banco de vetores:
+2. Coloque suas chaves de API no .env
+
+3. Execute o `app.py` pela primeira vez para criar o banco de vetores:
     ```sh
     python app.py
     ```
 
-3. Execute o `app.py` novamente para utilizá-lo corretamente:
+4. Execute o `app.py` novamente para utilizá-lo corretamente:
     ```sh
     python app.py
     ```
