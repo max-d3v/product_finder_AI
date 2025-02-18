@@ -2,7 +2,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from fastapi import FastAPI
-
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import os
@@ -32,10 +32,10 @@ def load_env():
 
 
 def get_model():
-    google_model = "gemini-1.5-pro"
-    temperature = 0.0
-    llm = ChatGoogleGenerativeAI(model=google_model, temperature=temperature)
-
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0,
+    )
     return llm
 
 def get_prompt():
