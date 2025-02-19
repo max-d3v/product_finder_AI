@@ -1,0 +1,27 @@
+# name: Build and Deploy API
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Check out the repository
+#         uses: actions/checkout@v4
+
+#       - name: Login into docker
+#         uses: docker/login-action@v3.2.0
+#         with:
+#           username: ${{ secrets.DOCKER_USERNAME }}
+#           password: ${{ secrets.DOCKER_PASSWORD }}
+
+#       - name: Set up Docker Build and Push
+#         uses: docker/build-push-action@v5.3.0
+#         with:
+#           push: true
+#           tags: copapel/product_finder_ai:latest
+#           no-cache: true

@@ -1,4 +1,4 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from fastapi import FastAPI
@@ -23,18 +23,15 @@ pydantic_parser = PydanticOutputParser(pydantic_object=FoundObjects)
 
 def load_env():
     load_dotenv()
-    googleKey=os.getenv("GOOGLE_API_KEY")
     key = os.getenv("OPENAI_API_KEY_NEW")
-    
-    os.environ["GOOGLE_API_KEY"] = googleKey
     os.environ["OPENAI_API_KEY"] = key
 
 
 
 def get_model():
-    google_model = "gemini-1.5-pro"
+    model = "gpt-4o-mini"
     temperature = 0.0
-    llm = ChatGoogleGenerativeAI(model=google_model, temperature=temperature)
+    llm = ChatOpenAI(model=model, temperature=temperature)
 
     return llm
 
@@ -84,21 +81,31 @@ query_template = """
     """
 
 def get_products(target_product: str):
-    print("Initiating similar product search...")
-    product_list = get_similar_products(target_product)
-    print("Product list obtained.")
+    try:
+        print("Iniciando busca por produtos similares...")
+        product_list = get_similar_products(target_product)
+        print("Lista de produtos obtida.")
 
-    query = query_template.format(product_list=product_list, target_product=target_product)
-    result = chain.invoke({"query": query})
-    return result
+        if not product_list:
+            return {"error": "Nenhum produto similar encontrado."}
+
+        query = query_template.format(product_list=product_list, target_product=target_product)
+        result = chain.invoke({"query": query})
+        return result
+    except Exception as e:
+        print(f"Erro ao buscar produtos: {str(e)}")
+        return {"error": f"Erro ao processar a requisição: {str(e)}"}
 
 
 @app.get("/product/{target_product}")
-def get_product(target_product: str):
-    if (target_product is None or target_product == ""):
-        return {"error": "No target product provided."}
-    result = get_products(target_product)
-    return result
+async def get_product(target_product: str):
+    try:
+        if not target_product or target_product.isspace():
+            return {"error": "Produto alvo não fornecido."}
+        result = get_products(target_product)
+        return result
+    except Exception as e:
+        return {"error": f"Erro no servidor: {str(e)}", "status": 500}
 
 if __name__ == "__main__":
     import uvicorn

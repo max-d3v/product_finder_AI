@@ -7,3 +7,4 @@ jq
 langchain-chroma
 fastapi
 uvicorn
+requests
