@@ -16,6 +16,7 @@ class FoundObject(BaseModel):
     Similarity: float = Field(description="Similarity of the item found")
     
 class FoundObjects(BaseModel):
+    TargetProduct: str = Field(description="Target product to compare with")
     found_objects: list[FoundObject] = Field(description="List of found objects of high similarity")
 
 pydantic_parser = PydanticOutputParser(pydantic_object=FoundObjects)
@@ -109,6 +110,7 @@ def get_products_post(target_products: List[str]):
             continue
         try:
             result = get_product(target_product)
+            print(type(result))
         except Exception as e:
             result = {"error": str(e)}
         results.append(result)
