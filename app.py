@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 import os
-
+from typing import List
 from product_rag import get_similar_products
 
 app = FastAPI()
@@ -99,6 +99,21 @@ def get_product(target_product: str):
         return {"error": "No target product provided."}
     result = get_products(target_product)
     return result
+
+@app.post("/products")
+def get_products_post(target_products: List[str]):
+    results = []
+    for target_product in target_products:
+        if target_product is None or target_product == "":
+            results.append({"error": "No target product provided."})
+            continue
+        try:
+            result = get_product(target_product)
+        except Exception as e:
+            result = {"error": str(e)}
+        results.append(result)
+    return results
+
 
 if __name__ == "__main__":
     import uvicorn
