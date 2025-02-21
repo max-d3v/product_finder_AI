@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 import os
 
 from product_rag import get_similar_products
+from fastapi.responses import StreamingResponse
+import json
+import asyncio
 
 app = FastAPI()
 
@@ -29,10 +32,18 @@ def load_env():
 
 
 def get_model():
+<<<<<<< Updated upstream
     model = "gpt-4o-mini"
     temperature = 0.0
     llm = ChatOpenAI(model=model, temperature=temperature)
 
+=======
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-lite-preview-02-05",
+        temperature=0,
+        convert_system_message_to_human=True
+    )
+>>>>>>> Stashed changes
     return llm
 
 def get_prompt():
@@ -80,6 +91,7 @@ query_template = """
     </target-product>
     """
 
+<<<<<<< Updated upstream
 def get_products(target_product: str):
     try:
         print("Iniciando busca por produtos similares...")
@@ -95,9 +107,63 @@ def get_products(target_product: str):
     except Exception as e:
         print(f"Erro ao buscar produtos: {str(e)}")
         return {"error": f"Erro ao processar a requisição: {str(e)}"}
+=======
+async def get_products_async(target_product: str):
+    print("Initiating similar product search...")
+    product_list = None
+    
+    async for result in get_similar_products(target_product):
+        if isinstance(result, str):
+            # Se for uma string, é uma mensagem de status
+            yield result
+        else:
+            # Se não for string, é a lista de produtos
+            product_list = result
+    
+    yield f"data: {json.dumps({'status': 'analyzing', 'message': 'Analisando similaridades...', 'product': target_product})}\n\n"
+    
+    query = query_template.format(product_list=product_list, target_product=target_product)
+    result = chain.invoke({"query": query})
+    
+    result_dict = {
+        "TargetProduct": result.TargetProduct,
+        "found_objects": [
+            {
+                "ItemName": obj.ItemName,
+                "Similarity": obj.Similarity
+            } for obj in result.found_objects
+        ]
+    }
+    yield f"data: {json.dumps({'status': 'success', 'product': target_product, 'result': result_dict})}\n\n"
+>>>>>>> Stashed changes
 
+async def generate_product_results(target_products: List[str]):
+    for i, target_product in enumerate(target_products):
+        if target_product is None or target_product == "":
+            yield f"data: {json.dumps({'status': 'error', 'product': target_product, 'message': 'No target product provided.'})}\n\n"
+            continue
+            
+        try:
+            yield f"data: {json.dumps({'status': 'processing', 'product': target_product, 'index': i, 'total': len(target_products)})}\n\n"
+            
+            async for progress_event in get_products_async(target_product):
+                yield progress_event
+            
+        except Exception as e:
+            yield f"data: {json.dumps({'status': 'error', 'product': target_product, 'message': str(e)})}\n\n"
+    
+    yield f"data: {json.dumps({'status': 'completed'})}\n\n"
+
+def get_products(target_product: str):
+    if target_product is None or target_product == "":
+        return {"error": "No target product provided."}
+    
+    # Executar de forma síncrona
+    result = asyncio.run(get_products_async(target_product).__anext__())
+    return result
 
 @app.get("/product/{target_product}")
+<<<<<<< Updated upstream
 async def get_product(target_product: str):
     try:
         if not target_product or target_product.isspace():
@@ -106,6 +172,21 @@ async def get_product(target_product: str):
         return result
     except Exception as e:
         return {"error": f"Erro no servidor: {str(e)}", "status": 500}
+=======
+def get_product(target_product: str):
+    if (target_product is None or target_product == ""):
+        return {"error": "No target product provided."}
+    result = get_products(target_product)
+    return result
+
+@app.post("/products")
+async def get_products_post(target_products: List[str]):
+    return StreamingResponse(
+        generate_product_results(target_products),
+        media_type="text/event-stream"
+    )
+
+>>>>>>> Stashed changes
 
 if __name__ == "__main__":
     import uvicorn
