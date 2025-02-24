@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import os
 from typing import List
 from product_rag import get_similar_products
+#from test_optimized import get_similar_products_test
+import time
 
 app = FastAPI()
 
@@ -33,11 +35,17 @@ def load_env():
 
 
 def get_model():
-    llm = ChatOpenAI(
+    openai_llm = ChatOpenAI(
         model="gpt-4o-mini",
-        temperature=0,
+        temperature=0.2
     )
-    return llm
+
+    google_llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-lite-preview-02-05",
+        temperature=0.2,
+    )
+
+    return google_llm
 
 def get_prompt():
     format_instructions = pydantic_parser.get_format_instructions()
@@ -86,11 +94,17 @@ query_template = """
 
 def get_products(target_product: str):
     print("Initiating similar product search...")
+    start_time = time.time()
     product_list = get_similar_products(target_product)
-    print("Product list obtained.")
+    end_time = time.time()
+    print(f"Product list obtained in {end_time - start_time} seconds.")
 
     query = query_template.format(product_list=product_list, target_product=target_product)
+    print("Initiating llm reasoning")
+    start_time_2 = time.time()
     result = chain.invoke({"query": query})
+    end_time_2 = time.time()
+    print(f"LLM reasoning completed in {end_time_2 - start_time_2} seconds.")
     return result
 
 

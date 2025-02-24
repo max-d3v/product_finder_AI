@@ -40,7 +40,6 @@ def get_similar_products(product_name: str):
     # Perform similarity search
     retrieved_docs = vectordb.similarity_search_with_score(product_name, k=300)
 
-    # Filter out documents with score above 0.9
     filtered_docs = [(doc, score) for doc, score in retrieved_docs]
 
     # Remove duplicate documents based on page content
@@ -54,8 +53,8 @@ def get_similar_products(product_name: str):
 
 
     # Extract and print page contents and scores
-    for doc, score in unique_filtered_docs:
-        print(f"Page Content: {doc.page_content}, Score: {score}")
+    #for doc, score in unique_filtered_docs:
+        #print(f"Page Content: {doc.page_content}, Score: {score}")
 
 
     # Print the total number of filtered documents
