@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exemplo de Cliente para API de Produtos com Streaming</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input,
+      button,
+      textarea {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 10px 15px;
+        max-width: 200px;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+      .log {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        margin-bottom: 15px;
+      }
+      .log-entry {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+      .status {
+        font-weight: bold;
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e8f5e9;
+        border-radius: 4px;
+        margin-bottom: 15px;
+      }
+      .result-item {
+        margin-top: 10px;
+        padding: 15px;
+        background-color: #e9f7ef;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .multi-product {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .product-tag {
+        background-color: #e0e0e0;
+        padding: 5px 10px;
+        border-radius: 15px;
+        display: inline-block;
+        margin-right: 5px;
+        margin-bottom: 5px;
+      }
+      .product-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 15px;
+      }
+      .progress-container {
+        width: 100%;
+        background-color: #f1f1f1;
+        border-radius: 4px;
+        margin: 10px 0;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 20px;
+        background-color: #4caf50;
+        text-align: center;
+        line-height: 20px;
+        color: white;
+        transition: width 0.3s;
+      }
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: #4caf50;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .timestamp {
+        color: #666;
+        font-size: 0.8em;
+        margin-right: 5px;
+      }
+      .highlight {
+        background-color: #fff9c4;
+        padding: 2px 4px;
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Exemplo de Cliente para API de Produtos com Streaming</h1>
+
+    <div class="container">
+      <!-- Busca de produto único -->
+      <div class="card">
+        <h2>Buscar Produto Único (Streaming)</h2>
+        <div class="form-group">
+          <label for="singleProduct">Nome do Produto:</label>
+          <input type="text" id="singleProduct" placeholder="Ex: Caneta Azul" />
+        </div>
+        <button id="searchSingleBtn">Buscar</button>
+
+        <div class="status" id="singleStatus">
+          <span
+            id="singleStatusSpinner"
+            style="display: none"
+            class="spinner"
+          ></span>
+          <span id="singleStatusText">Aguardando...</span>
+        </div>
+
+        <div
+          class="progress-container"
+          id="singleProgressContainer"
+          style="display: none"
+        >
+          <div class="progress-bar" id="singleProgressBar" style="width: 0%">
+            0%
+          </div>
+        </div>
+
+        <h3>Log de Eventos:</h3>
+        <div class="log" id="singleLog"></div>
+
+        <h3>Resultados:</h3>
+        <div id="singleResults"></div>
+      </div>
+
+      <!-- Busca de múltiplos produtos -->
+      <div class="card">
+        <h2>Buscar Múltiplos Produtos (Streaming)</h2>
+        <div class="form-group">
+          <label for="multiProducts">Produtos (um por linha):</label>
+          <textarea
+            id="multiProducts"
+            rows="4"
+            placeholder="Ex: Caneta Azul&#10;Lápis Preto&#10;Borracha"
+          ></textarea>
+        </div>
+        <button id="searchMultiBtn">Buscar</button>
+
+        <div class="status" id="multiStatus">
+          <span
+            id="multiStatusSpinner"
+            style="display: none"
+            class="spinner"
+          ></span>
+          <span id="multiStatusText">Aguardando...</span>
+        </div>
+
+        <div
+          class="progress-container"
+          id="multiProgressContainer"
+          style="display: none"
+        >
+          <div class="progress-bar" id="multiProgressBar" style="width: 0%">
+            0%
+          </div>
+        </div>
+
+        <h3>Log de Eventos:</h3>
+        <div class="log" id="multiLog"></div>
+
+        <h3>Resultados:</h3>
+        <div id="multiResults"></div>
+      </div>
+    </div>
+
+    <script>
+      // Função para adicionar mensagem ao log
+      function addToLog(logId, message, isJson = true) {
+        const logElement = document.getElementById(logId);
+        const timestamp = new Date().toLocaleTimeString();
+
+        let formattedMessage;
+        if (isJson) {
+          try {
+            const jsonObj =
+              typeof message === "string" ? JSON.parse(message) : message;
+            formattedMessage = JSON.stringify(jsonObj, null, 2);
+          } catch (e) {
+            formattedMessage = message;
+          }
+        } else {
+          formattedMessage = message;
+        }
+
+        const logEntry = document.createElement("div");
+        logEntry.className = "log-entry";
+        logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${formattedMessage}`;
+
+        logElement.appendChild(logEntry);
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      // Função para atualizar o status
+      function updateStatus(statusId, message, isLoading = false) {
+        const statusText = document.getElementById(statusId + "Text");
+        const statusSpinner = document.getElementById(statusId + "Spinner");
+
+        statusText.textContent = message;
+
+        if (isLoading) {
+          statusSpinner.style.display = "inline-block";
+        } else {
+          statusSpinner.style.display = "none";
+        }
+      }
+
+      // Função para atualizar a barra de progresso
+      function updateProgress(progressId, percent) {
+        const progressBar = document.getElementById(progressId + "Bar");
+        const progressContainer = document.getElementById(
+          progressId + "Container"
+        );
+
+        progressContainer.style.display = "block";
+        progressBar.style.width = percent + "%";
+        progressBar.textContent = percent + "%";
+      }
+
+      // Função para buscar um único produto com streaming
+      document
+        .getElementById("searchSingleBtn")
+        .addEventListener("click", async () => {
+          const productName = document
+            .getElementById("singleProduct")
+            .value.trim();
+          if (!productName) {
+            alert("Por favor, digite o nome de um produto");
+            return;
+          }
+
+          const searchBtn = document.getElementById("searchSingleBtn");
+          searchBtn.disabled = true;
+
+          // Limpar resultados anteriores
+          document.getElementById("singleLog").innerHTML = "";
+          document.getElementById("singleResults").innerHTML = "";
+          updateStatus("singleStatus", "Processando...", true);
+          updateProgress("singleProgress", 0);
+
+          try {
+            const response = await fetch(
+              `http://localhost:1313/product/stream/${encodeURIComponent(
+                productName
+              )}`,
+              {
+                headers: {
+                  "Cache-Control": "no-cache",
+                  Accept: "application/x-ndjson",
+                },
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            let buffer = "";
+            let progress = 0;
+
+            while (true) {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                // Processar qualquer dado restante no buffer
+                if (buffer.trim()) {
+                  processStreamChunk(buffer, "single");
+                }
+                break;
+              }
+
+              // Decodificar o chunk e adicionar ao buffer
+              const text = decoder.decode(value, { stream: true });
+              console.log("Recebido chunk:", text);
+              buffer += text;
+
+              // Processar linhas completas
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // Manter a última linha incompleta no buffer
+
+              for (const line of lines) {
+                if (line.trim()) {
+                  processStreamChunk(line, "single");
+
+                  // Atualizar progresso
+                  if (progress < 90) {
+                    progress += 20;
+                    updateProgress("singleProgress", progress);
+                  }
+                }
+              }
+            }
+
+            updateProgress("singleProgress", 100);
+            updateStatus("singleStatus", "Concluído");
+            searchBtn.disabled = false;
+          } catch (error) {
+            console.error("Erro:", error);
+            addToLog("singleLog", `Erro: ${error.message}`, false);
+            updateStatus("singleStatus", "Erro: " + error.message);
+            searchBtn.disabled = false;
+          }
+        });
+
+      // Função para processar um chunk do stream
+      function processStreamChunk(chunk, type) {
+        try {
+          const data = JSON.parse(chunk);
+          const logId = type === "single" ? "singleLog" : "multiLog";
+          const statusId = type === "single" ? "singleStatus" : "multiStatus";
+          const resultsId =
+            type === "single" ? "singleResults" : "multiResults";
+
+          // Adicionar ao log
+          addToLog(logId, data);
+
+          // Atualizar status
+          updateStatus(statusId, data.message || data.status, true);
+
+          // Se for um resultado final, exibir
+          if (
+            data.status === "concluido" ||
+            data.status === "produto_concluido"
+          ) {
+            displayResult(data, resultsId, type);
+          }
+
+          // Se for o final de todos os produtos, parar o spinner
+          if (
+            data.status === "concluido" ||
+            data.status === "todos_concluidos"
+          ) {
+            updateStatus(statusId, data.message || "Concluído", false);
+          }
+        } catch (e) {
+          console.error("Erro ao processar chunk:", e, chunk);
+        }
+      }
+
+      // Função para exibir o resultado
+      function displayResult(data, resultsId, type) {
+        const resultsElement = document.getElementById(resultsId);
+
+        if (type === "single") {
+          // Exibir resultado de produto único
+          const result = data.result;
+
+          if (
+            !result ||
+            !result.found_objects ||
+            result.found_objects.length === 0
+          ) {
+            const resultItem = document.createElement("div");
+            resultItem.className = "result-item";
+            resultItem.innerHTML = `<p>Nenhum produto similar encontrado para: <strong>${result.TargetProduct}</strong></p>`;
+            resultsElement.appendChild(resultItem);
+            return;
+          }
+
+          const resultItem = document.createElement("div");
+          resultItem.className = "result-item";
+
+          let html = `<h4>Produtos similares para: ${result.TargetProduct}</h4><ul>`;
+
+          for (const obj of result.found_objects) {
+            html += `<li><strong>${
+              obj.ItemName
+            }</strong> (Similaridade: ${obj.Similarity.toFixed(2)})</li>`;
+          }
+
+          html += `</ul>`;
+          resultItem.innerHTML = html;
+          resultsElement.appendChild(resultItem);
+        } else {
+          // Exibir resultado de produto em processamento múltiplo
+          if (data.status === "produto_concluido") {
+            const result = data.result;
+            const productIdx = data.produto_idx;
+
+            // Verificar se já existe um resultado para este produto
+            const existingResult = document.getElementById(
+              `result-${productIdx}`
+            );
+            if (existingResult) {
+              existingResult.remove();
+            }
+
+            const resultItem = document.createElement("div");
+            resultItem.className = "result-item";
+            resultItem.id = `result-${productIdx}`;
+
+            let html = `<h4>Produto #${productIdx + 1}: ${data.produto}</h4>`;
+
+            if (
+              !result ||
+              !result.found_objects ||
+              result.found_objects.length === 0
+            ) {
+              html += `<p>Nenhum produto similar encontrado</p>`;
+            } else {
+              html += `<ul>`;
+              for (const obj of result.found_objects) {
+                html += `<li><strong>${
+                  obj.ItemName
+                }</strong> (Similaridade: ${obj.Similarity.toFixed(2)})</li>`;
+              }
+              html += `</ul>`;
+            }
+
+            resultItem.innerHTML = html;
+            resultsElement.appendChild(resultItem);
+          }
+        }
+      }
+
+      // Função para buscar múltiplos produtos com streaming
+      document
+        .getElementById("searchMultiBtn")
+        .addEventListener("click", async () => {
+          const productsText = document
+            .getElementById("multiProducts")
+            .value.trim();
+          if (!productsText) {
+            alert("Por favor, digite pelo menos um produto");
+            return;
+          }
+
+          const products = productsText
+            .split("\n")
+            .map((p) => p.trim())
+            .filter((p) => p.length > 0);
+
+          if (products.length === 0) {
+            alert("Por favor, digite pelo menos um produto válido");
+            return;
+          }
+
+          const searchBtn = document.getElementById("searchMultiBtn");
+          searchBtn.disabled = true;
+
+          // Limpar resultados anteriores
+          document.getElementById("multiLog").innerHTML = "";
+          document.getElementById("multiResults").innerHTML = "";
+          updateStatus("multiStatus", "Processando...", true);
+          updateProgress("multiProgress", 0);
+
+          // Exibir lista de produtos a serem processados
+          const multiResults = document.getElementById("multiResults");
+          let html = `<div class="product-list">`;
+          for (const product of products) {
+            html += `<span class="product-tag">${product}</span>`;
+          }
+          html += `</div>`;
+          multiResults.innerHTML = html;
+
+          try {
+            const response = await fetch(
+              "http://localhost:1313/products/stream",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Cache-Control": "no-cache",
+                  Accept: "application/x-ndjson",
+                },
+                body: JSON.stringify(products),
+              }
+            );
+
+            if (!response.ok) {
+              throw new Error(`Erro HTTP: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            let buffer = "";
+            let progress = 0;
+            let processedProducts = 0;
+
+            while (true) {
+              const { done, value } = await reader.read();
+
+              if (done) {
+                // Processar qualquer dado restante no buffer
+                if (buffer.trim()) {
+                  processStreamChunk(buffer, "multi");
+                }
+                break;
+              }
+
+              // Decodificar o chunk e adicionar ao buffer
+              const text = decoder.decode(value, { stream: true });
+              console.log("Recebido chunk multi:", text);
+              buffer += text;
+
+              // Processar linhas completas
+              const lines = buffer.split("\n");
+              buffer = lines.pop(); // Manter a última linha incompleta no buffer
+
+              for (const line of lines) {
+                if (line.trim()) {
+                  processStreamChunk(line, "multi");
+
+                  // Verificar se é um produto concluído
+                  try {
+                    const data = JSON.parse(line);
+                    if (data.status === "produto_concluido") {
+                      processedProducts++;
+                      // Calcular progresso baseado no número de produtos processados
+                      progress = Math.min(
+                        95,
+                        Math.round((processedProducts / products.length) * 100)
+                      );
+                      updateProgress("multiProgress", progress);
+                    }
+                  } catch (e) {
+                    console.error("Erro ao analisar linha:", e);
+                  }
+                }
+              }
+            }
+
+            updateProgress("multiProgress", 100);
+            updateStatus("multiStatus", "Concluído", false);
+            searchBtn.disabled = false;
+          } catch (error) {
+            console.error("Erro:", error);
+            addToLog("multiLog", `Erro: ${error.message}`, false);
+            updateStatus("multiStatus", "Erro: " + error.message, false);
+            searchBtn.disabled = false;
+          }
+        });
+    </script>
+  </body>
+</html>
