@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  product-finder:
+    image: copapel/product_finder_ai:latest
+    pull_policy: always
+    container_name: product-finder-ai
+    ports:
+      - "8080:1313"
+    restart: always
+    environment:
+      - TZ=America/Sao_Paulo
+      - DOCKER_INTERNAL_HOST=${DOCKER_INTERNAL_HOST:-172.17.0.1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - web
+
+networks:
+  web:
+    external: true

@@ -6,6 +6,7 @@ import json
 import os
 import logging
 from datetime import datetime
+from urllib.parse import quote
 
 # Configuração de logging
 logging.basicConfig(
@@ -18,60 +19,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger("update_products")
 
-# Função para carregar o token de autenticação
-def load_token():
-    # Tenta carregar do arquivo .env
-    env_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
-    if os.path.exists(env_file):
-        with open(env_file, 'r') as f:
-            for line in f:
-                if line.strip() and not line.startswith('#'):
-                    key, value = line.strip().split('=', 1)
-                    if key == 'WS_TOKEN':
-                        return value.strip('"\'')
-    
-    # Tenta carregar da variável de ambiente
-    token = os.getenv("WS_TOKEN")
-    if token:
-        return token
-    
-    # Tenta carregar do arquivo de token
-    token_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'token.txt')
-    if os.path.exists(token_file):
-        with open(token_file, 'r') as f:
-            return f.read().strip()
-    
-    return None
-
 # URL e token para a consulta
-URL = "http://192.168.1.23:9060/consultaSQL"
-TOKEN = load_token()
+BASE_URL = "http://sl.copapel.com.br:9060/consultaSQL"
+TOKEN = "ZJBIm0ML8zf9xML5d4fjnRzZGToe538UDAep0q2yfYxSk9OE3togCd5IyjmsdlEh"
 QUERY = """SELECT "ItemName" FROM "SBO_COPAPEL_PRD"."OITM" WHERE "validFor" = 'Y' AND "ItemType" = 'I' ORDER BY "ItemCode";"""
 
 # Caminho para o arquivo products.json
-PRODUCTS_FILE = "products.json"
+PRODUCTS_FILE = "data/products.json"
+
+# Caminho para o diretório vector_db
+VECTOR_DB_DIR = "data/vector_db_products"
+
+# Caminho para o arquivo .env
+ENV_FILE = "data/.env"
 
 def fetch_products():
     """
     Consulta o endpoint para obter a lista de produtos.
     Retorna a lista de produtos ou None em caso de erro.
     """
-    if not TOKEN:
-        logger.error("Token de autenticação não configurado. Configure a variável de ambiente WS_TOKEN, o arquivo .env ou token.txt.")
-        return None
-        
     try:
-        params = {
-            "token": TOKEN,
-            "query": QUERY
-        }
+        # Constrói a URL completa
+        url = f"{BASE_URL}?token={TOKEN}&query={quote(QUERY)}"
         
         logger.info("Iniciando consulta ao endpoint...")
-        response = requests.get(URL, params=params)
+        logger.info(f"Query SQL sendo executada: {QUERY}")
+        
+        response = requests.get(url)
         
         if response.status_code == 200:
-            logger.info(f"Consulta realizada com sucesso. Recebidos {len(response.json())} produtos.")
-            return response.json()
+            data = response.json()
+            
+            # Se recebeu uma resposta de erro do servidor
+            if isinstance(data, dict) and "STATUS" in data and data["STATUS"] == "-1":
+                logger.error(f"Erro retornado pelo servidor: {data.get('MENSAGEM', 'Sem mensagem de erro')}")
+                return None
+            
+            logger.info(f"Consulta realizada com sucesso. Recebidos {len(data)} produtos.")
+            logger.debug(f"Primeiros 5 produtos: {json.dumps(data[:5], ensure_ascii=False, indent=2)}")
+            return data
         else:
             logger.error(f"Erro ao consultar endpoint. Status code: {response.status_code}")
             logger.error(f"Resposta: {response.text}")
@@ -87,41 +73,48 @@ def format_products(products_data):
     if not products_data:
         return None
     
-    # Verifica se os dados já estão no formato esperado
-    if isinstance(products_data, list) and all(isinstance(item, dict) and "ItemName" in item for item in products_data):
-        formatted_data = {
-            "products": products_data
-        }
-        return formatted_data
-    
-    # Se os dados estiverem em outro formato, tenta converter
     try:
-        if isinstance(products_data, dict) and "products" in products_data:
-            return products_data
-        
-        logger.warning("Formato de dados inesperado. Tentando converter...")
         formatted_data = {
             "products": []
         }
         
-        for item in products_data:
-            if isinstance(item, dict) and "ItemName" in item:
-                formatted_data["products"].append({"ItemName": item["ItemName"]})
-            elif isinstance(item, str):
-                formatted_data["products"].append({"ItemName": item})
+        # Trata a resposta da API
+        if isinstance(products_data, list):
+            for item in products_data:
+                if isinstance(item, dict):
+                    # Se o item já estiver no formato correto
+                    if "ItemName" in item:
+                        formatted_data["products"].append({"ItemName": item["ItemName"]})
+                    # Se o item estiver em outro formato, tenta extrair o nome
+                    else:
+                        for key, value in item.items():
+                            if isinstance(value, str):
+                                formatted_data["products"].append({"ItemName": value})
+                                break
+                elif isinstance(item, str):
+                    formatted_data["products"].append({"ItemName": item})
         
+        # Verifica se há produtos após a formatação
+        if not formatted_data["products"]:
+            logger.warning("Nenhum produto encontrado após formatação dos dados")
+            return None
+            
+        logger.info(f"Dados formatados com sucesso. Total de produtos: {len(formatted_data['products'])}")
         return formatted_data
     except Exception as e:
         logger.error(f"Erro ao formatar dados: {str(e)}")
         return None
 
 def save_products(formatted_data):
-
-    if not formatted_data:
-        logger.error("Nenhum dado para salvar.")
+    """
+    Salva os dados formatados no arquivo products.json
+    """
+    if not formatted_data or not formatted_data.get("products"):
+        logger.error("Nenhum dado válido para salvar.")
         return False
     
     try:
+        # Cria backup do arquivo atual se existir
         if os.path.exists(PRODUCTS_FILE):
             backup_file = f"products_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
@@ -132,6 +125,7 @@ def save_products(formatted_data):
             
             logger.info(f"Backup criado: {backup_file}")
         
+        # Salva o novo arquivo
         with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
             json.dump(formatted_data, f, ensure_ascii=False, indent=2)
         
@@ -142,33 +136,37 @@ def save_products(formatted_data):
         return False
 
 def update_products():
-
+    """
+    Função principal que coordena a atualização dos produtos
+    """
     logger.info("Iniciando atualização de produtos...")
     
+    # Busca os produtos
     products_data = fetch_products()
     if not products_data:
         logger.error("Falha ao obter dados dos produtos. Abortando atualização.")
         return False
     
+    # Formata os dados
     formatted_data = format_products(products_data)
     if not formatted_data:
         logger.error("Falha ao formatar dados dos produtos. Abortando atualização.")
         return False
     
+    # Salva os dados
     success = save_products(formatted_data)
     
     if success:
         logger.info("Atualização de produtos concluída com sucesso.")
         
-        # Verifica se é necessário recriar o banco de vetores
-        vector_db_dir = "vector_db_products"
-        if os.path.exists(vector_db_dir):
+        # Limpa o banco de vetores se existir
+        if os.path.exists(VECTOR_DB_DIR):
             import shutil
             try:
-                shutil.rmtree(vector_db_dir)
-                logger.info(f"Diretório {vector_db_dir} removido para recriação do banco de vetores.")
+                shutil.rmtree(VECTOR_DB_DIR)
+                logger.info(f"Diretório {VECTOR_DB_DIR} removido para recriação do banco de vetores.")
             except Exception as e:
-                logger.error(f"Erro ao remover diretório {vector_db_dir}: {str(e)}")
+                logger.error(f"Erro ao remover diretório {VECTOR_DB_DIR}: {str(e)}")
     else:
         logger.error("Falha na atualização de produtos.")
     

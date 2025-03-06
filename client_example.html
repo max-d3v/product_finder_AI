@@ -160,44 +160,7 @@
     </style>
   </head>
   <body>
-    <h1>Exemplo de Cliente para API de Produtos com Streaming</h1>
-
     <div class="container">
-      <!-- Busca de produto único -->
-      <div class="card">
-        <h2>Buscar Produto Único (Streaming)</h2>
-        <div class="form-group">
-          <label for="singleProduct">Nome do Produto:</label>
-          <input type="text" id="singleProduct" placeholder="Ex: Caneta Azul" />
-        </div>
-        <button id="searchSingleBtn">Buscar</button>
-
-        <div class="status" id="singleStatus">
-          <span
-            id="singleStatusSpinner"
-            style="display: none"
-            class="spinner"
-          ></span>
-          <span id="singleStatusText">Aguardando...</span>
-        </div>
-
-        <div
-          class="progress-container"
-          id="singleProgressContainer"
-          style="display: none"
-        >
-          <div class="progress-bar" id="singleProgressBar" style="width: 0%">
-            0%
-          </div>
-        </div>
-
-        <h3>Log de Eventos:</h3>
-        <div class="log" id="singleLog"></div>
-
-        <h3>Resultados:</h3>
-        <div id="singleResults"></div>
-      </div>
-
       <!-- Busca de múltiplos produtos -->
       <div class="card">
         <h2>Buscar Múltiplos Produtos (Streaming)</h2>
@@ -239,7 +202,6 @@
     </div>
 
     <script>
-      // Função para adicionar mensagem ao log
       function addToLog(logId, message, isJson = true) {
         const logElement = document.getElementById(logId);
         const timestamp = new Date().toLocaleTimeString();
@@ -265,7 +227,6 @@
         logElement.scrollTop = logElement.scrollHeight;
       }
 
-      // Função para atualizar o status
       function updateStatus(statusId, message, isLoading = false) {
         const statusText = document.getElementById(statusId + "Text");
         const statusSpinner = document.getElementById(statusId + "Spinner");
@@ -279,7 +240,6 @@
         }
       }
 
-      // Função para atualizar a barra de progresso
       function updateProgress(progressId, percent) {
         const progressBar = document.getElementById(progressId + "Bar");
         const progressContainer = document.getElementById(
@@ -291,95 +251,6 @@
         progressBar.textContent = percent + "%";
       }
 
-      // Função para buscar um único produto com streaming
-      document
-        .getElementById("searchSingleBtn")
-        .addEventListener("click", async () => {
-          const productName = document
-            .getElementById("singleProduct")
-            .value.trim();
-          if (!productName) {
-            alert("Por favor, digite o nome de um produto");
-            return;
-          }
-
-          const searchBtn = document.getElementById("searchSingleBtn");
-          searchBtn.disabled = true;
-
-          // Limpar resultados anteriores
-          document.getElementById("singleLog").innerHTML = "";
-          document.getElementById("singleResults").innerHTML = "";
-          updateStatus("singleStatus", "Processando...", true);
-          updateProgress("singleProgress", 0);
-
-          try {
-            const response = await fetch(
-              `http://localhost:1313/product/stream/${encodeURIComponent(
-                productName
-              )}`,
-              {
-                headers: {
-                  "Cache-Control": "no-cache",
-                  Accept: "application/x-ndjson",
-                },
-              }
-            );
-
-            if (!response.ok) {
-              throw new Error(`Erro HTTP: ${response.status}`);
-            }
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            let buffer = "";
-            let progress = 0;
-
-            while (true) {
-              const { done, value } = await reader.read();
-
-              if (done) {
-                // Processar qualquer dado restante no buffer
-                if (buffer.trim()) {
-                  processStreamChunk(buffer, "single");
-                }
-                break;
-              }
-
-              // Decodificar o chunk e adicionar ao buffer
-              const text = decoder.decode(value, { stream: true });
-              console.log("Recebido chunk:", text);
-              buffer += text;
-
-              // Processar linhas completas
-              const lines = buffer.split("\n");
-              buffer = lines.pop(); // Manter a última linha incompleta no buffer
-
-              for (const line of lines) {
-                if (line.trim()) {
-                  processStreamChunk(line, "single");
-
-                  // Atualizar progresso
-                  if (progress < 90) {
-                    progress += 20;
-                    updateProgress("singleProgress", progress);
-                  }
-                }
-              }
-            }
-
-            updateProgress("singleProgress", 100);
-            updateStatus("singleStatus", "Concluído");
-            searchBtn.disabled = false;
-          } catch (error) {
-            console.error("Erro:", error);
-            addToLog("singleLog", `Erro: ${error.message}`, false);
-            updateStatus("singleStatus", "Erro: " + error.message);
-            searchBtn.disabled = false;
-          }
-        });
-
-      // Função para processar um chunk do stream
       function processStreamChunk(chunk, type) {
         try {
           const data = JSON.parse(chunk);
@@ -388,13 +259,10 @@
           const resultsId =
             type === "single" ? "singleResults" : "multiResults";
 
-          // Adicionar ao log
           addToLog(logId, data);
 
-          // Atualizar status
           updateStatus(statusId, data.message || data.status, true);
 
-          // Se for um resultado final, exibir
           if (
             data.status === "concluido" ||
             data.status === "produto_concluido"
@@ -402,7 +270,6 @@
             displayResult(data, resultsId, type);
           }
 
-          // Se for o final de todos os produtos, parar o spinner
           if (
             data.status === "concluido" ||
             data.status === "todos_concluidos"
@@ -414,12 +281,10 @@
         }
       }
 
-      // Função para exibir o resultado
       function displayResult(data, resultsId, type) {
         const resultsElement = document.getElementById(resultsId);
 
         if (type === "single") {
-          // Exibir resultado de produto único
           const result = data.result;
 
           if (
@@ -449,12 +314,10 @@
           resultItem.innerHTML = html;
           resultsElement.appendChild(resultItem);
         } else {
-          // Exibir resultado de produto em processamento múltiplo
           if (data.status === "produto_concluido") {
             const result = data.result;
             const productIdx = data.produto_idx;
 
-            // Verificar se já existe um resultado para este produto
             const existingResult = document.getElementById(
               `result-${productIdx}`
             );
@@ -490,7 +353,6 @@
         }
       }
 
-      // Função para buscar múltiplos produtos com streaming
       document
         .getElementById("searchMultiBtn")
         .addEventListener("click", async () => {
@@ -515,13 +377,11 @@
           const searchBtn = document.getElementById("searchMultiBtn");
           searchBtn.disabled = true;
 
-          // Limpar resultados anteriores
           document.getElementById("multiLog").innerHTML = "";
           document.getElementById("multiResults").innerHTML = "";
           updateStatus("multiStatus", "Processando...", true);
           updateProgress("multiProgress", 0);
 
-          // Exibir lista de produtos a serem processados
           const multiResults = document.getElementById("multiResults");
           let html = `<div class="product-list">`;
           for (const product of products) {
@@ -559,32 +419,26 @@
               const { done, value } = await reader.read();
 
               if (done) {
-                // Processar qualquer dado restante no buffer
                 if (buffer.trim()) {
                   processStreamChunk(buffer, "multi");
                 }
                 break;
               }
 
-              // Decodificar o chunk e adicionar ao buffer
               const text = decoder.decode(value, { stream: true });
-              console.log("Recebido chunk multi:", text);
               buffer += text;
 
-              // Processar linhas completas
               const lines = buffer.split("\n");
-              buffer = lines.pop(); // Manter a última linha incompleta no buffer
+              buffer = lines.pop();
 
               for (const line of lines) {
                 if (line.trim()) {
                   processStreamChunk(line, "multi");
 
-                  // Verificar se é um produto concluído
                   try {
                     const data = JSON.parse(line);
                     if (data.status === "produto_concluido") {
                       processedProducts++;
-                      // Calcular progresso baseado no número de produtos processados
                       progress = Math.min(
                         95,
                         Math.round((processedProducts / products.length) * 100)

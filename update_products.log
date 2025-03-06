@@ -29,3 +29,65 @@
 2025-02-28 17:53:56,269 - update_products - INFO - Arquivo products.json atualizado com sucesso. Total de produtos: 2
 2025-02-28 17:53:56,269 - update_products - INFO - Atualização de produtos concluída com sucesso.
 2025-02-28 17:53:56,270 - update_products - ERROR - Erro ao remover diretório vector_db_products: [WinError 32] O arquivo já está sendo usado por outro processo: 'vector_db_products\\5defba41-52a7-470e-83fd-60f12f352aff\\data_level0.bin'
+2025-03-05 11:10:06,245 - scheduler - INFO - Iniciando scheduler...
+2025-03-05 11:10:06,245 - scheduler - INFO - Scheduler configurado. Aguardando horário de execução...
+2025-03-05 11:10:06,246 - scheduler - INFO - Iniciando job de atualização de produtos...
+2025-03-05 11:10:06,246 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:10:06,246 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:10:06,373 - update_products - INFO - Consulta realizada com sucesso. Recebidos 2 produtos.
+2025-03-05 11:10:06,374 - update_products - WARNING - Formato de dados inesperado. Tentando converter...
+2025-03-05 11:10:06,408 - update_products - INFO - Backup criado: products_backup_20250305_111006.json
+2025-03-05 11:10:06,409 - update_products - INFO - Arquivo products.json atualizado com sucesso. Total de produtos: 2
+2025-03-05 11:10:06,410 - update_products - INFO - Atualização de produtos concluída com sucesso.
+2025-03-05 11:10:06,410 - update_products - ERROR - Erro ao remover diretório vector_db_products: [WinError 32] O arquivo já está sendo usado por outro processo: 'vector_db_products\\5defba41-52a7-470e-83fd-60f12f352aff\\data_level0.bin'
+2025-03-05 11:10:06,410 - scheduler - INFO - Job de atualização concluído com sucesso
+2025-03-05 11:14:27,894 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:14:27,895 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:14:28,059 - update_products - INFO - Consulta realizada com sucesso. Recebidos 2 produtos.
+2025-03-05 11:14:28,059 - update_products - INFO - Dados formatados com sucesso. Total de produtos: 0
+2025-03-05 11:14:28,059 - update_products - ERROR - Nenhum dado válido para salvar.
+2025-03-05 11:14:28,059 - update_products - ERROR - Falha na atualização de produtos.
+2025-03-05 11:15:19,605 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:15:19,605 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:15:19,731 - update_products - INFO - Consulta realizada com sucesso. Recebidos 2 produtos.
+2025-03-05 11:15:19,732 - update_products - INFO - Formato dos dados recebidos: <class 'dict'>
+2025-03-05 11:15:19,733 - update_products - INFO - Conteúdo dos dados: {
+  "STATUS": "-1",
+  "MENSAGEM": "ERRO: [FireDAC][Phys][ODBC][SAP AG][LIBODBCHDB DLL][HDBODBC] Syntax error or access violation;257 sql syntax error: incorrect syntax near FROM: line 1 col 19 (at pos 19)"
+}
+2025-03-05 11:15:19,734 - update_products - WARNING - Nenhum produto encontrado após formatação dos dados
+2025-03-05 11:15:19,735 - update_products - ERROR - Falha ao formatar dados dos produtos. Abortando atualização.
+2025-03-05 11:15:44,440 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:15:44,441 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:15:44,566 - update_products - INFO - Consulta realizada com sucesso. Recebidos 2 produtos.
+2025-03-05 11:15:44,566 - update_products - INFO - Formato dos dados recebidos: <class 'dict'>
+2025-03-05 11:15:44,567 - update_products - INFO - Conteúdo dos dados: {
+  "STATUS": "-1",
+  "MENSAGEM": "ERRO: [FireDAC][Phys][ODBC][SAP AG][LIBODBCHDB DLL][HDBODBC] Syntax error or access violation;257 sql syntax error: incorrect syntax near FROM: line 1 col 17 (at pos 17)"
+}
+2025-03-05 11:15:44,567 - update_products - WARNING - Nenhum produto encontrado após formatação dos dados
+2025-03-05 11:15:44,568 - update_products - ERROR - Falha ao formatar dados dos produtos. Abortando atualização.
+2025-03-05 11:16:00,154 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:16:00,154 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:16:00,299 - update_products - INFO - Consulta realizada com sucesso. Recebidos 2 produtos.
+2025-03-05 11:16:00,300 - update_products - INFO - Formato dos dados recebidos: <class 'dict'>
+2025-03-05 11:16:00,300 - update_products - INFO - Conteúdo dos dados: {
+  "STATUS": "-1",
+  "MENSAGEM": "ERRO: [FireDAC][Phys][ODBC][SAP AG][LIBODBCHDB DLL][HDBODBC] Syntax error or access violation;257 sql syntax error: incorrect syntax near FROM: line 1 col 19 (at pos 19)"
+}
+2025-03-05 11:16:00,301 - update_products - WARNING - Nenhum produto encontrado após formatação dos dados
+2025-03-05 11:16:00,301 - update_products - ERROR - Falha ao formatar dados dos produtos. Abortando atualização.
+2025-03-05 11:20:05,851 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:20:05,852 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:20:05,853 - update_products - INFO - Query SQL sendo executada: SELECT "ItemName" FROM "SBO_COPAPEL_PRD"."OITM" WHERE "validFor" = 'Y' AND "ItemType" = 'I' ORDER BY "ItemCode";
+2025-03-05 11:20:06,007 - update_products - ERROR - Erro retornado pelo servidor: ERRO: [FireDAC][Phys][ODBC][SAP AG][LIBODBCHDB DLL][HDBODBC] Syntax error or access violation;257 sql syntax error: incorrect syntax near FROM: line 1 col 19 (at pos 19)
+2025-03-05 11:20:06,007 - update_products - ERROR - Falha ao obter dados dos produtos. Abortando atualização.
+2025-03-05 11:20:30,925 - update_products - INFO - Iniciando atualização de produtos...
+2025-03-05 11:20:30,925 - update_products - INFO - Iniciando consulta ao endpoint...
+2025-03-05 11:20:30,925 - update_products - INFO - Query SQL sendo executada: SELECT "ItemName" FROM "SBO_COPAPEL_PRD"."OITM" WHERE "validFor" = 'Y' AND "ItemType" = 'I' ORDER BY "ItemCode";
+2025-03-05 11:20:31,279 - update_products - INFO - Consulta realizada com sucesso. Recebidos 5309 produtos.
+2025-03-05 11:20:31,285 - update_products - INFO - Dados formatados com sucesso. Total de produtos: 5309
+2025-03-05 11:20:31,287 - update_products - INFO - Backup criado: products_backup_20250305_112031.json
+2025-03-05 11:20:31,308 - update_products - INFO - Arquivo products.json atualizado com sucesso. Total de produtos: 5309
+2025-03-05 11:20:31,309 - update_products - INFO - Atualização de produtos concluída com sucesso.
+2025-03-05 11:20:31,310 - update_products - ERROR - Erro ao remover diretório vector_db_products: [WinError 32] O arquivo já está sendo usado por outro processo: 'vector_db_products\\5defba41-52a7-470e-83fd-60f12f352aff\\data_level0.bin'
