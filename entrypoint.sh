@@ -16,8 +16,8 @@ python /app/update_products.py
 echo "Atualização de produtos concluída"
 
 # Inicia a aplicação FastAPI em background
-echo "Iniciando servidor FastAPI na porta 1313..."
-uvicorn app:app --host 0.0.0.0 --port 1313 &
+echo "Iniciando servidor FastAPI na porta 1515..."
+uvicorn app:app --host 0.0.0.0 --port 1515 &
 echo "Servidor FastAPI iniciado"
 
 # Mantém o container rodando e exibe os logs

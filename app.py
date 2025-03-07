@@ -13,6 +13,11 @@ from product_rag import get_similar_products, initialize_db, recreate_db
 import time
 import json
 import google.generativeai as genai
+import logging
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -20,18 +25,12 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://proposta.copapel.com.br",
-        "https://avprojects.duckdns.org:8443"  # Note a adição da porta
+        "https://proposta.copapel.com.br"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Nota: Para resolver o problema de Mixed Content, você precisa:
-# 1. Configurar HTTPS na sua API usando certificados SSL
-# 2. Ou usar um proxy reverso como Nginx com SSL
-# ... existing code ...
 
 class FoundObject(BaseModel):
     ItemName: str = Field(description="Name of the item found")
@@ -90,28 +89,29 @@ prompt = get_prompt()
 chain = prompt | llm | pydantic_parser
 
 # Inicializa o banco de dados vetorial
-print("Inicializando banco de dados vetorial...")
 try:
-    # Verifica se estamos em ambiente Docker
     is_docker = os.path.exists('/.dockerenv')
     
     # Se estiver em ambiente Docker, força a recriação do banco de dados
     # para evitar problemas de incompatibilidade
     if is_docker:
-        print("Ambiente Docker detectado. Forçando recriação do banco de dados...")
+        logger.info("Ambiente Docker detectado. Forçando recriação do banco de dados...")
         recreate_db()
     else:
+        logger.info("Inicializando banco de dados vetorial...")
         initialize_db()
-    print("Banco de dados vetorial inicializado com sucesso!")
+    logger.info("Banco de dados vetorial inicializado com sucesso!")
 except Exception as e:
-    print(f"Erro ao inicializar banco de dados: {str(e)}")
-    print("Tentando recriar o banco de dados...")
+    logger.error(f"Erro ao inicializar banco de dados: {str(e)}")
+    logger.info("Tentando recriar o banco de dados...")
     try:
         recreate_db()
-        print("Banco de dados recriado com sucesso!")
+        logger.info("Banco de dados recriado com sucesso!")
     except Exception as e2:
-        print(f"Falha ao recriar banco de dados: {str(e2)}")
-        raise e2
+        logger.error(f"Falha ao recriar banco de dados: {str(e2)}")
+        # Não vamos interromper a aplicação, apenas logar o erro
+        # A aplicação tentará inicializar o banco quando necessário
+        logger.warning("A aplicação continuará, mas pode haver problemas ao buscar produtos.")
 
 query_template = """
     <product-list>
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app, 
         host="0.0.0.0",
-        port=8080,  # Certifique-se que esta porta corresponde à que você está usando na VPS
+        port=1515,  # Certifique-se que esta porta corresponde à que você está usando na VPS
         timeout_keep_alive=120,
         log_level="info"
     )
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     # uvicorn.run(
     #     app, 
     #     host="0.0.0.0",
-    #     port=8080,
+    #     port=1515,
     #     ssl=ssl_context,
     #     timeout_keep_alive=120,
     #     log_level="info"

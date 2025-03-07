@@ -44,7 +44,7 @@ RUN touch /var/log/cron.log
 RUN chmod +x entrypoint.sh
 
 # Expõe a porta da API
-EXPOSE 1313
+EXPOSE 1515
 
 # Define o entrypoint para configurar o host.docker.internal
 ENTRYPOINT ["/etc/docker/entrypoint.sh"]

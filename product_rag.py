@@ -6,12 +6,47 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 import time
+import random
+import logging
+from langchain_google_genai._common import GoogleGenerativeAIError
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Variáveis globais
 persist_directory = "./vector_db_products"
 products_file = "./products.json"
 vectordb = None
 embedding_function = None
+
+# Configurações de retry
+MAX_RETRIES = 5
+INITIAL_RETRY_DELAY = 60  # segundos
+MAX_RETRY_DELAY = 600  # 10 minutos
+
+def retry_with_exponential_backoff(func):
+    """Decorator para implementar retry com backoff exponencial"""
+    def wrapper(*args, **kwargs):
+        retry_count = 0
+        while retry_count < MAX_RETRIES:
+            try:
+                return func(*args, **kwargs)
+            except GoogleGenerativeAIError as e:
+                if "429 Resource has been exhausted" in str(e):
+                    retry_count += 1
+                    if retry_count >= MAX_RETRIES:
+                        logger.error(f"Número máximo de tentativas ({MAX_RETRIES}) excedido. Erro: {e}")
+                        raise
+                    
+                    # Calcula o tempo de espera com jitter
+                    delay = min(INITIAL_RETRY_DELAY * (2 ** (retry_count - 1)) + random.uniform(0, 1), MAX_RETRY_DELAY)
+                    logger.warning(f"Cota da API excedida. Tentativa {retry_count}/{MAX_RETRIES}. Aguardando {delay:.2f} segundos...")
+                    time.sleep(delay)
+                else:
+                    # Se não for erro de cota, propaga o erro
+                    raise
+    return wrapper
 
 def initialize_db():
     """Inicializa o banco de dados vetorial apenas uma vez"""
@@ -37,7 +72,7 @@ def initialize_db():
     # Verifica se o banco de dados já existe
     if os.path.exists(persist_directory):
         try:
-            print(f"Carregando banco de dados existente de {persist_directory}")
+            logger.info(f"Carregando banco de dados existente de {persist_directory}")
             vectordb = Chroma(
                 persist_directory=persist_directory,
                 embedding_function=embedding_function
@@ -47,17 +82,17 @@ def initialize_db():
             # Se ocorrer erro ao carregar o banco existente (como incompatibilidade de versão),
             # remove o banco e cria um novo
             if "no such column: collections.topic" in str(e) or "sqlite3.OperationalError" in str(e):
-                print(f"Erro ao carregar banco de dados existente: {str(e)}")
-                print("Detectada incompatibilidade de versão do banco de dados. Recriando...")
+                logger.warning(f"Erro ao carregar banco de dados existente: {str(e)}")
+                logger.info("Detectada incompatibilidade de versão do banco de dados. Recriando...")
                 import shutil
                 shutil.rmtree(persist_directory)
-                print(f"Banco de dados antigo removido de {persist_directory}")
+                logger.info(f"Banco de dados antigo removido de {persist_directory}")
             else:
                 # Se for outro tipo de erro, propaga o erro
                 raise e
     
     # Cria o banco de dados se não existir ou se foi removido devido a incompatibilidade
-    print(f"Criando novo banco de dados em {persist_directory}")
+    logger.info(f"Criando novo banco de dados em {persist_directory}")
     
     # Carrega e processa os documentos
     loader = JSONLoader(
@@ -70,13 +105,21 @@ def initialize_db():
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     all_splits = text_splitter.split_documents(products)
 
-    # Cria o banco de vetores e persiste
+    # Cria o banco de vetores e persiste com retry
+    create_vector_db_with_retry(all_splits)
+    logger.info(f"Banco de dados criado com sucesso em {persist_directory}")
+
+@retry_with_exponential_backoff
+def create_vector_db_with_retry(documents):
+    """Cria o banco de dados vetorial com retry em caso de erro de cota"""
+    global vectordb, embedding_function, persist_directory
+    
     vectordb = Chroma.from_documents(
-        documents=all_splits,
+        documents=documents,
         embedding=embedding_function,
         persist_directory=persist_directory
     )
-    print(f"Banco de dados criado com sucesso em {persist_directory}")
+    return vectordb
 
 def recreate_db():
     """Força a recriação do banco de dados"""
@@ -85,7 +128,7 @@ def recreate_db():
     # Força a recriação do banco de dados
     import shutil
     if os.path.exists(persist_directory):
-        print(f"Removendo banco de dados existente em {persist_directory}")
+        logger.info(f"Removendo banco de dados existente em {persist_directory}")
         shutil.rmtree(persist_directory)
     
     # Reinicializa o banco de dados
@@ -100,6 +143,16 @@ def get_similar_products(product_name: str):
     if vectordb is None:
         initialize_db()
     
+    # Realiza a busca por similaridade com retry
+    return search_products_with_retry(product_name)
+
+@retry_with_exponential_backoff
+def search_products_with_retry(product_name: str):
+    """Realiza a busca por similaridade com retry em caso de erro de cota"""
+    global vectordb
+    
+    logger.info(f"Buscando produtos similares a: {product_name}")
+    
     # Realiza a busca por similaridade
     retrieved_docs = vectordb.similarity_search_with_score(product_name, k=300)
 
@@ -113,8 +166,8 @@ def get_similar_products(product_name: str):
             unique_filtered_docs.append((doc, score))
             seen_contents.add(doc.page_content)
 
-    # Print the total number of filtered documents
-    print(f"Total number of filtered documents: {len(unique_filtered_docs)}")
+    # Log do número total de documentos filtrados
+    logger.info(f"Total de documentos filtrados: {len(unique_filtered_docs)}")
 
     unique_filtered_docs_without_score = [doc for doc, score in unique_filtered_docs]
     return unique_filtered_docs_without_score
